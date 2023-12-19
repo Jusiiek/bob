@@ -4,12 +4,6 @@ import os
 from bot import Bot
 from config.environment import TOKEN
 from config.environment import COGS_FOLDER
-from config.config import Config
-
-
-async def create_setup():
-    config = Config()
-    await config.create_setup()
 
 
 async def setup(bot):
@@ -19,7 +13,6 @@ async def setup(bot):
 
 
 async def main():
-    await create_setup()
     bot = Bot()
     await setup(bot)
     await bot.start(TOKEN)
