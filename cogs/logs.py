@@ -13,32 +13,13 @@ class Logs(commands.Cog):
         self.__config = Config()
 
     async def cog_check(self, ctx):
-        guild_id = ctx.guild.id
         owner_id = ctx.guild.owner_id
 
-        if owner_id == ctx.author.id:
-            return True
-        else:
-            return (self.__config.get_config_value(guild_id, RolesKeys.ADMINISTRATORS_ROLES.value) \
-                    and any(role.id for role in ctx.author.roles) in \
-                    zip(self.__config.get_config_value(guild_id, RolesKeys.ADMINISTRATORS_ROLES.value),
-                        self.__config.get_config_value(guild_id, RolesKeys.MODERATORS_ROLES.value)
-                        )
-                    )
-
-    @app_commands.command(name='set_rules_channel', description='Set rules channel')
-    @app_commands.guilds(discord.Object(id=SERVER_ID))
-    async def set_welcomes_channel(self, interaction: Interaction, channel: discord.TextChannel):
-        self.__config.set_config(
-            ChannelsKeys.RULES_CHANNEL.value,
-            channel.id
-        )
-
-        await interaction.response.send_message(
-            "Successfully set new rules channel",
-            ephemeral=True
-        )
+        return (ctx.author.guild_permissions.administrator or
+                ctx.author.guild_permissions.manage_guild or
+                owner_id == ctx.author.id
+                )
 
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Logs(bot))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(Logs(bot), guilds=bot.guilds)

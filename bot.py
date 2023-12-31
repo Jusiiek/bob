@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context, CommandError
 
+from logger import logger
+
 
 class Bot(commands.Bot):
     intents = discord.Intents.all()
@@ -13,10 +15,10 @@ class Bot(commands.Bot):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Bot {self.user.display_name} is connected to the server")
+        logger.info(f"Bot {self.user.display_name} is connected to the server")
 
     @commands.Cog.listener()
     async def on_command_error(self, context: Context, errors: CommandError) -> None:
         if errors:
-            await context.send("Command not found")
-            print(f"[ERROR]: {errors}")
+            await context.send("Command not found", ephemeral=True)
+            logger.error(f"[ERROR]: {errors}")

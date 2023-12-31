@@ -1,8 +1,9 @@
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context, CommandError
 
 from config.config import Config
-from config.config_keys import RolesKeys
+
+from logger import logger
 
 
 class Base(commands.Cog):
@@ -17,26 +18,32 @@ class Basics(Base):
         self.__bot = bot
         self.__config = Config()
 
+    # @commands.has_permissions(manage_guild=True)
     @commands.command(name="sync")
     async def sync(self, context: Context):
-        guild_id = context.guild.id
-        if not self.__config.get_config_value(guild_id, RolesKeys.ADMINISTRATORS_ROLES.value):
-            return await context.channel.send(
-                "It looks like you haven't configured the admin key.\n" +
-                "Use 'set_admins' command to create admins list or add new admin to the list"
-            )
-        print("Running sync command")
-        user_roles = [role.id for role in context.author.roles]
-        allowed_roles = self.__config.get_config_value(guild_id, RolesKeys.ADMINISTRATORS_ROLES.value)
+        guild = context.guild
+        logger.info("Running sync command")
 
-        if any(role_id in allowed_roles for role_id in user_roles):
-            fmt = await self.__bot.tree.sync(guild=context.guild)
-            await context.channel.send(
-                f"Synced {len(fmt)} commands to the current guild."
+        if (not context.author.guild_permissions.administrator or
+            not context.author.guild_permissions.manage_guild):
+            raise Exception("You do not have permission to run this command")
+
+        fmt = await self.__bot.tree.sync(guild=context.guild)
+        await context.channel.send(
+            f"Synced {len(fmt)} commands to the current guild."
+        )
+        logger.info(f"The guild {guild.name} with id {guild.id} synced successfully")
+
+    @sync.error
+    async def sync_error(self, context: Context, errors: CommandError) -> None:
+        guild = context.guild
+        if errors or isinstance(errors, commands.MissingPermissions):
+            await context.send(
+                f"The guild {guild.name} with id {guild.id} couldn't sync {str(errors)}",
+                ephemeral=True
             )
-        else:
-            await context.channel.send("You have not permission to execute this command")
+            logger.error(f"[ERROR]: {errors}")
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Basics(bot))
+    await bot.add_cog(Basics(bot), guilds=bot.guilds)
